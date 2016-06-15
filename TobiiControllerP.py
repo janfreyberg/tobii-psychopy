@@ -115,156 +115,160 @@ class TobiiController:
     ############################################################################
 
     def doCalibration(self, calibrationPoints, calinRadius=None,
-                      caloutRadius=None, moveDur=1.5):
+                      caloutRadius=None, moveFrames=120):
         if self.eyetracker is None:
             return
 
+        # set default
         if calinRadius is None:
-            if self.win.unit == 'pix':
-                calinRadius = 2.0
-            elif self.win.unit == 'cm':
-                calinRadius = 0.1
-            elif self.win.unit in ['deg', 'degflat', 'degflatpos']:
-                calinRadius = 0.05
-            else:  # norm, height
-                calinRadius = 0.002
+            calinRadius = 2.0
         if caloutRadius is None:
             caloutRadius = calinRadius * 20.0
 
         self.points = calibrationPoints
-        self.point_index = -1
 
-        img = Image.new('RGB', self.win.size)
-        draw = ImageDraw.Draw(img)
-
-        self.calin = psychopy.visual.Circle(
-            self.win, radius=calinRadius, fillColor=(0.0, 0.0, 0.0))
-        self.calout = psychopy.visual.Circle(
-            self.win, radius=caloutRadius, lineColor=(0.0, 1.0, 0.0))
-        self.calresult = psychopy.visual.SimpleImageStim(self.win, img)
-        self.calresultmsg = psychopy.visual.TextStim(
-            self.win, pos=(0, -self.win.size[1] / 4))
+        # Make the "inner" circle
+        self.calin = psychopy.visual.Circle(self.win, radius=calinRadius,
+                                            fillColor=(0.0, 0.0, 0.0),
+                                            units='pix')
+        # Make the "outer" circle
+        self.calout = psychopy.visual.Circle(self.win, radius=caloutRadius,
+                                             lineColor=(0.0, 1.0, 0.0),
+                                             units='pix')
+        # Make a dummy message
+        self.calmsg = psychopy.visual.TextStim(self.win,
+                                               pos=(0, -self.win.size[1] / 4))
 
         self.initcalibration_completed = False
         print "StartCalibration"
         self.eyetracker.StartCalibration(self.on_calib_start)
         while not self.initcalibration_completed:
-            time.sleep(0.01)
+            core.wait(0.1)
 
-        waitkey = True
-        while waitkey:
-            for key in psychopy.event.getKeys():
-                if key == 'space':
-                    waitkey = False
+        # Draw instructions and wait for space key
+        self.calmsg.text = ("Press space when you're ready")
+        self.calinstruction.draw()
+        self.win.flip()
+        psychopy.event.waitKeys(keyList=['space'])
 
-            self.calout.draw()
-            self.calin.draw()
-            self.win.flip()
-
-        clock = psychopy.core.Clock()
+        # Go through the calibration points
         for self.point_index in range(len(self.points)):
+            # The dot starts at the previous point
+            self.calin.pos =
+            self.calout.pos = ((self.points[self.point_index - 1][0] - 0.5) *
+                               self.win.size[0],
+                               (self.points[self.point_index - 1][1] - 0.5) *
+                               self.win.size[1])
+            # The steps for the movement is new - old divided by frames
+            self.step = (((self.points[self.point_index][0] - 0.5) *
+                          self.win.size[0],
+                          (self.points[self.point_index][1] - 0.5) *
+                          self.win.size[1]) - self.calout.pos) / moveFrames
+
+            # Create a tobii 2D class
             p = Point2D()
+            # Add the X and Y coordinates to the tobii point
             p.x, p.y = self.points[self.point_index]
-            self.calin.setPos(
-                ((p.x - 0.5) * self.win.size[0],
-                 (0.5 - p.y) * self.win.size[1]))
-            self.calout.setPos(
-                ((p.x - 0.5) * self.win.size[0],
-                 (0.5 - p.y) * self.win.size[1]))
 
-            clock.reset()
-            currentTime = clock.getTime()
-            while currentTime < moveDur:
-                self.calout.setRadius(
-                    float(calinRadius * 2.0 - caloutRadius) / moveDur *
-                    currentTime + caloutRadius)
-                psychopy.event.getKeys()
+            # Move the point in position (smooth pursuit)
+            for frame in range(moveFrames):
+                self.calin.pos =
+                self.calout.pos += self.step
+                # draw & flip
+                self.calin.draw()
+                self.calout.draw()
+                self.win.flip()
+
+            # Shrink the outer point (gaze fixation)
+            for frame in range(moveFrames / 2):
+                self.calout.radius -= (caloutRadius -
+                                       calinRadius) / (moveFrames / 2)
                 self.calout.draw()
                 self.calin.draw()
                 self.win.flip()
-                currentTime = clock.getTime()
-            self.add_point_completed = False
+
+            # Add this point to the tobii
+            self.add_point_completed = False  # this gets updated automatically
             self.eyetracker.AddCalibrationPoint(p, self.on_add_completed)
+            # While this point is being added, do nothing:
             while not self.add_point_completed:
-                psychopy.event.getKeys()
-                self.calout.draw()
-                self.calin.draw()
-                self.win.flip()
+                core.wait(0.1)
 
-        self.computeCalibration_completed = False
+            # Reset the radius of the large circle
+            self.calout.radius = caloutRadius
+
+        # The following two will be set by the tobii SDK
+        self.computeCalibration_completed =
         self.computeCalibration_succeeded = False
+        # Do the computation
         self.eyetracker.ComputeCalibration(self.on_calib_compute)
         while not self.computeCalibration_completed:
-            time.sleep(0.01)
+            core.wait(0.1)
         self.eyetracker.StopCalibration(None)
 
         self.win.flip()
 
+        # Now we retrieve the calibration data
         self.getcalibration_completed = False
         self.calib = self.eyetracker.GetCalibration(self.on_calib_response)
         while not self.getcalibration_completed:
-            time.sleep(0.01)
+            core.wait(0.1)
 
-        draw.rectangle(((0, 0), tuple(self.win.size)), fill=(128, 128, 128))
         if not self.computeCalibration_succeeded:
             # computeCalibration failed.
-            self.calresultmsg.setText(
-                'Not enough data was collected (Retry:r/Abort:ESC)')
-
+            self.calmsg.text = ("Not enough data was collected "
+                                "(Retry:[r] Abort:[ESC])")
         elif self.calib is None:
             # no calibration data
-            self.calresultmsg.setText('No calibration data (Retry:r/Abort:ESC)')
+            self.calmsg.text = ("No calibration data "
+                                "(Retry:[r] Abort:[ESC])")
         else:
+            # calibration seems to have worked out
             points = {}
             for data in self.calib.plot_data:
                 points[data.true_point] = {
                     'left': data.left, 'right': data.right}
 
             if len(points) == 0:
-                self.calresultmsg.setText(
-                    'No ture calibration data (Retry:r/Abort:ESC)')
-
+                # no points in the calibration results
+                self.calmsg.text = ("No calibration data "
+                                    "(Retry:[r] Abort:[ESC])")
             else:
+                # draw the calibration result
                 for p, d in points.iteritems():
-                    # MODIFIED: validity -> status
+                    # draw the calibration results onto ImageDraw.
+                    # TODO: Remove ImageDraw, use psychopy instead.
                     if d['left'].status == 1:
-                        draw.line(((p.x * self.win.size[0],
-                                    p.y * self.win.size[1]),
-                                   (d['left'].map_point.x * self.win.size[0],
-                                    d['left'].map_point.y * self.win.size[1])),
-                                  fill=(255, 0, 0))
-                    # MODIFIED: validity -> status
+                        psychopy.visual.Line(self.win, units='pix',
+                                             lineColor='red',
+                                             start=(p.x * self.win.size[0],
+                                                    p.y * self.win.size[1]),
+                                             end=(d['left'].map_point.x *
+                                                  self.win.size[0],
+                                                  d['left'].map_point.y *
+                                                  self.win.size[1])).draw()
                     if d['right'].status == 1:
-                        draw.line(((p.x * self.win.size[0],
-                                    p.y * self.win.size[1]),
-                                   (d['right'].map_point.x * self.win.size[0],
-                                    d['right'].map_point.y * self.win.size[1])),
-                                  fill=(0, 255, 0))
-                    draw.ellipse(((p.x * self.win.size[0] - 10,
-                                   p.y * self.win.size[1] - 10),
-                                  (p.x * self.win.size[0] + 10,
-                                   p.y * self.win.size[1] + 10)),
-                                 outline=(0, 0, 0))
-                self.calresultmsg.setText(
-                    'Accept calibration results (Accept:a/Retry:r/Abort:ESC)')
+                        psychopy.visual.Line(self.win, units='pix',
+                                             lineColor='red',
+                                             start=(p.x * self.win.size[0],
+                                                    p.y * self.win.size[1]),
+                                             end=(d['right'].map_point.x *
+                                                  self.win.size[0],
+                                                  d['right'].map_point.y *
+                                                  self.win.size[1])).draw()
+                self.calmsg.text = ("Accept calibration results\n"
+                                    "(Accept:[a] Retry:[r] Abort:[ESC])")
 
-        self.calresult.setImage(img)
-
-        waitkey = True
-        while waitkey:
-            for key in psychopy.event.getKeys():
-                if key == 'a':
-                    retval = 'accept'
-                    waitkey = False
-                elif key == 'r':
-                    retval = 'retry'
-                    waitkey = False
-                elif key == 'escape':
-                    retval = 'abort'
-                    waitkey = False
-            self.calresult.draw()
-            self.calresultmsg.draw()
-            self.win.flip()
+        # Update the screen, then wait for response
+        self.calmsg.draw()
+        self.win.flip()
+        self.response = psychopy.event.waitKeys(keyList=['a', 'r', 'escape'])
+        if 'a' in self.response:
+            retval = 'accept'
+        elif 'r' in self.response:
+            retval = 'retry'
+        elif 'escape' in response:
+            retval = 'abort'
 
         return retval
 
