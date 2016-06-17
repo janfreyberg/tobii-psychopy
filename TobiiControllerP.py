@@ -3,31 +3,26 @@
 # Tobii controller for PsychoPy
 # author: Hiroyuki Sogo
 #         Modified by Soyogu Matsushita
+#         Further modified by Jan Freyberg
 # - Tobii SDK 3.0 is required
 # - no guarantee
 #
 
-# MODIFIED: tobii.sdk -> tobii.eye_tracking_io
 from tobii.eye_tracking_io.basic import EyetrackerException
 
-import os
 import datetime
-import time
 
-# MODIFIED: tobii.sdk -> tobii.eye_tracking_io
 import tobii.eye_tracking_io.mainloop
 import tobii.eye_tracking_io.browsing
 import tobii.eye_tracking_io.eyetracker
 import tobii.eye_tracking_io.time.clock
 import tobii.eye_tracking_io.time.sync
 
-from tobii.eye_tracking_io.types import Point2D, Blob
+from tobii.eye_tracking_io.types import Point2D
 
 import psychopy.visual
 import psychopy.event
-
-import Image
-import ImageDraw
+import psychopy.core
 
 
 class TobiiController:
@@ -49,7 +44,7 @@ class TobiiController:
 
     def waitForFindEyeTracker(self):
         while len(self.eyetrackers.keys()) == 0:
-            time.sleep(0.01)
+            psychopy.core.wait(0.1)
 
     def on_eyetracker_browser_event(self,
                                     event_type,
@@ -92,7 +87,7 @@ class TobiiController:
                                                              eyetracker_info)))
 
         while self.eyetracker is None:
-            time.sleep(0.01)
+            psychopy.core.wait(0.1)
         self.syncmanager = tobii.eye_tracking_io.time.sync.SyncManager(
             self.clock, eyetracker_info, self.mainloop_thread)
 
@@ -143,7 +138,7 @@ class TobiiController:
         print "StartCalibration"
         self.eyetracker.StartCalibration(self.on_calib_start)
         while not self.initcalibration_completed:
-            core.wait(0.1)
+            psychopy.core.wait(0.1)
 
         # Draw instructions and wait for space key
         self.calmsg.text = ("Press space when you're ready")
@@ -192,7 +187,7 @@ class TobiiController:
             self.eyetracker.AddCalibrationPoint(p, self.on_add_completed)
             # While this point is being added, do nothing:
             while not self.add_point_completed:
-                core.wait(0.1)
+                psychopy.core.wait(0.1)
 
             # Reset the radius of the large circle
             self.calout.radius = caloutRadius
@@ -203,7 +198,7 @@ class TobiiController:
         # Do the computation
         self.eyetracker.ComputeCalibration(self.on_calib_compute)
         while not self.computeCalibration_completed:
-            core.wait(0.1)
+            psychopy.core.wait(0.1)
         self.eyetracker.StopCalibration(None)
 
         self.win.flip()
@@ -212,7 +207,7 @@ class TobiiController:
         self.getcalibration_completed = False
         self.calib = self.eyetracker.GetCalibration(self.on_calib_response)
         while not self.getcalibration_completed:
-            core.wait(0.1)
+            psychopy.core.wait(0.1)
 
         if not self.computeCalibration_succeeded:
             # computeCalibration failed.
