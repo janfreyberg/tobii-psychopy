@@ -22,7 +22,7 @@ You can try out the controller by running tobiicontroller.py as a script rather 
 
 When using it as part of a PsychoPy experiment, import it first, and then create a "controller" class by calling `myController = tobiicontroller.TobiiController(window)`, where `window` is the handle of an open psychopy window.
 
-The following functions of the controller can be used for calibrating:
+The following functions of the controller can be used for calibrating and tracking:
 
 - `myController.findEyes()` mirrors the eyes so you can adjust the angle of the tobii and move the participant to the right distance
 - `myController.doCalibration()` calibrates the scanner. You can provide, as an optional argument, a list of tuples that contain the coordinates of your points. You should provide this list in "Active Display Coordinates", where `(0.0, 0.0)` is top left, and `(1.0, 1.0)` is bottom right. The default is `[(0.5, 0.5), (0.1, 0.9), (0.1, 0.1), (0.9, 0.9), (0.9, 0.1)]`, and more or fewer points aren't really advisable.
