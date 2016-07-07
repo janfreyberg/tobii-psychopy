@@ -1,4 +1,4 @@
-# tobiicontroller
+# tobii psychopy
 This is a port, with some modifications, of a script written by @SogoHiroyuki, to make it easier to use tobiis from psychopy.
 
 The original is located here:
