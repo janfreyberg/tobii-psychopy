@@ -518,12 +518,15 @@ class TobiiController:
                         bothEyes=True, errorMargin=0.1):
         # this function waits until the eye tracker detects one (or both)
         # eyes to be at a certain point, +- some margin of error
+        # fixation point should be given in pixels
         # first, make sure data is not saved:
         self.datafile_temp, self.datafile = self.datafile, None
         self.startTracking()  # kick off tracking
         psychopy.core.wait(0.5)  # allow the tracker to gather some data
-        while (abs(self.getCurrentGazeAverage()[0]) < errorMargin and
-               abs(self.getCurrentGazeAverage()[1]) < errorMargin and
+        while (abs(self.getCurrentGazeAverage()[0] -
+                   fixationPoint[0]) < errorMargin and
+               abs(self.getCurrentGazeAverage()[1] -
+                   fixationPoint[1]) < errorMargin and
                (not bothEyes or (self.getCurrentValidity()[0] != 4 and
                                  self.getCurrentValidity()[1] != 4))):
             psychopy.core.wait(0.05)  # wait 50ms before checking again
