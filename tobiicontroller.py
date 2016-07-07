@@ -192,7 +192,7 @@ class TobiiController:
     def doCalibration(self, calibrationPoints=[(0.5, 0.5), (0.1, 0.9),
                                                (0.1, 0.1), (0.9, 0.9),
                                                (0.9, 0.1)],
-                      calinRadius=2.0,caloutRadius=None, moveFrames=60):
+                      calinRadius=2.0, caloutRadius=None, moveFrames=60):
         if self.eyetracker is None:
             return
 
@@ -363,7 +363,8 @@ class TobiiController:
                                            ).draw()
                     psychopy.visual.Circle(self.win, units='pix',
                                            lineColor=-0.5,
-                                           radius=deg2pix(0.9, self.win.monitor),
+                                           radius=deg2pix(0.9,
+                                                          self.win.monitor),
                                            pos=self.acsd2pix(p),
                                            ).draw()
                 self.calmsg.text = ("Accept calibration results\n"
@@ -494,9 +495,9 @@ class TobiiController:
             if lastGaze.LeftValidity != 4 and lastGaze.RightValidity != 4:
                 # return average data
                 return self.acsd2pix((np.mean((lastGaze.LeftGazePoint2D.x,
-                                              lastGaze.RightGazePoint2D.x)),
-                                     np.mean((lastGaze.LeftGazePoint2D.y,
-                                              lastGaze.RightGazePoint2D.y))))
+                                               lastGaze.RightGazePoint2D.x)),
+                                      np.mean((lastGaze.LeftGazePoint2D.y,
+                                               lastGaze.RightGazePoint2D.y))))
             elif lastGaze.LeftValidity != 4 and lastGaze.RightValidity == 4:
                 # only return left data
                 return self.acsd2pix(lastGaze.LeftGazePoint2D.x,
@@ -512,6 +513,23 @@ class TobiiController:
         else:
             return (self.gazeData[-1].LeftValidity,
                     self.gazeData[-1].RightValidity)
+
+    def waitForFixation(self, fixationPoint=(0, 0),
+                        bothEyes=True, errorMargin=0.1):
+        # this function waits until the eye tracker detects one (or both)
+        # eyes to be at a certain point, +- some margin of error
+        # first, make sure data is not saved:
+        self.datafile_temp, self.datafile = self.datafile, None
+        self.startTracking()  # kick off tracking
+        psychopy.core.wait(0.5)  # allow the tracker to gather some data
+        while (abs(self.getCurrentGazeAverage()[0]) < errorMargin and
+               abs(self.getCurrentGazeAverage()[1]) < errorMargin and
+               (not bothEyes or (self.getCurrentValidity()[0] != 4 and
+                                 self.getCurrentValidity()[1] != 4))):
+            psychopy.core.wait(0.05)  # wait 50ms before checking again
+        self.stopTracking()  # stop tracking
+        # then restore data file so tracking can continue
+        self.datafile, self.datafile_temp = self.datafile_temp, None
 
     def getCurrentEyePosition(self):
         # returns the most recent eye position
@@ -540,9 +558,11 @@ class TobiiController:
             print 'set datafile ' + filename
             self.datafile = open(filename, 'w+')
             self.datafile.write('Recording date:\t' +
-                                datetime.datetime.now().strftime('%Y/%m/%d') + '\n')
+                                datetime.datetime.now().strftime('%Y/%m/%d') +
+                                '\n')
             self.datafile.write('Recording time:\t' +
-                                datetime.datetime.now().strftime('%H:%M:%S') + '\n')
+                                datetime.datetime.now().strftime('%H:%M:%S') +
+                                '\n')
             self.datafile.write('Recording resolution\t%d x %d\n\n' %
                                 tuple(self.win.size))
 
