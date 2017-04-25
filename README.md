@@ -9,12 +9,13 @@ I have taken the Psychopy version of his script and adapted it to:
 - have a slightly more intuitive calibration procedure
 
 ### Installation
-Clone the repository and add it to your python distribution's ./Lib/modules folder.
+Install by typing: pip install git+https://github.com/janfreyberg/tobii-psychopy.git
 
+#### Dependencies
 You will need:
 - numpy (`pip install numpy`)
 - psychopy (`pip install psychopy`, but check the requirements at [psychopy.org](www.psychopy.org)
-- the tobii pro analytics sdk ([from the tobii website](http://www.tobiipro.com/product-listing/tobii-pro-analytics-sdk/))
+- the tobii pro analytics sdk 3.X ([from the tobii website](http://www.tobiipro.com/product-listing/tobii-pro-analytics-sdk/))
 - datetime (`pip install datetime`)
 
 ### Usage
