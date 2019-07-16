@@ -1,4 +1,6 @@
-THIS LIBRARY IS NO LONGER MAINTAINED. Unfortunately, I no longer work in psychology and therefore don't have
+⚠️ THIS LIBRARY IS NO LONGER MAINTAINED. ⚠️
+
+Unfortunately, I no longer work in psychology and therefore don't have
 access to tobii devices. If you'd like to take the project forward, please do!
 
 # tobii psychopy
